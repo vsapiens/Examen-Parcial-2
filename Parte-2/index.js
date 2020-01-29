@@ -1,55 +1,95 @@
-let express = require( 'express' );
-let bodyParser = require( 'body-parser' );
-let mongoose = require( 'mongoose' );
+let express = require("express");
+let bodyParser = require("body-parser");
+let mongoose = require("mongoose");
 let jsonParser = bodyParser.json();
-let { DATABASE_URL, PORT } = require( './config' );
+let { bookmarkController } = require("./model");
+let { DATABASE_URL, PORT } = require("./config");
 
 let app = express();
 
 let server;
 
-/* Tu código va aquí */
+app.get("/api/bookmarks/:id", jsonParser, (req, res) => {
+  let idBody = req.body.id;
+  let idParam = req.params.id;
 
-function runServer( port, databaseUrl ){
-	return new Promise( (resolve, reject ) => {
-		mongoose.connect( databaseUrl, response => {
-			if ( response ){
-				return reject( response );
-			}
-			else{
-				server = app.listen(port, () => {
-					console.log( "App is running on port " + port );
-					resolve();
-				})
-				.on( 'error', err => {
-					mongoose.disconnect();
-					return reject(err);
-				})
-			}
-		});
-	});
+  if (!idBody) {
+    res.statusMessage = "El id no ha sido enviado en el cuerpo del mensaje";
+    return res.status(406).send();
+  }
+
+  if (idBody !== idParam) {
+    res.statusMessage = "Los ids no coinciden";
+    return res.status(409).send();
+  }
+  if (req.body.length === 1) {
+    res.statusMessage = "Añadir más parámetros";
+    return res.status(406).send();
+  }
+  console.log(idBody);
+  let bm = bookmarkController.findByID(idBody);
+  console.log(bm);
+
+  if (!bm) {
+    res.statusMessage = "No existe el id";
+    return res.status(400).send();
+  }
+
+  let newBookmark = {
+    titulo: req.body.titulo || bm.titulo,
+    descripcion: req.body.descripcion || bm.descripcion,
+    url: req.body.url || bm.url
+  };
+  _id = bm._id;
+
+  bookmarkController
+    .updateByID(_id, newBookmark)
+    .then(bm => {
+      return res.status(200).send(newBookmark);
+    })
+    .catch(error => {
+      throw new Error(err);
+    });
+});
+
+function runServer(port, databaseUrl) {
+  return new Promise((resolve, reject) => {
+    mongoose.connect(databaseUrl, response => {
+      if (response) {
+        return reject(response);
+      } else {
+        server = app
+          .listen(port, () => {
+            console.log("App is running on port " + port);
+            resolve();
+          })
+          .on("error", err => {
+            mongoose.disconnect();
+            return reject(err);
+          });
+      }
+    });
+  });
 }
 
-function closeServer(){
-	return mongoose.disconnect()
-		.then( () => {
-			return new Promise( (resolve, reject) => {
-				console.log( 'Closing the server' );
-				server.close( err => {
-					if ( err ){
-						return reject( err );
-					}
-					else{
-						resolve();
-					}
-				});
-			});
-		});
+function closeServer() {
+  return mongoose.disconnect().then(() => {
+    return new Promise((resolve, reject) => {
+      console.log("Closing the server");
+      server.close(err => {
+        if (err) {
+          return reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
 }
-runServer( PORT, DATABASE_URL );
+runServer(PORT, DATABASE_URL);
 
-module.exports = { 
-    app, 
-    runServer, 
-    closeServer 
-}
+module.exports = {
+  app,
+  runServer,
+  closeServer
+};
