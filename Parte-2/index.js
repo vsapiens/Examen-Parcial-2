@@ -26,30 +26,27 @@ app.get("/api/bookmarks/:id", jsonParser, (req, res) => {
     res.statusMessage = "Añadir más parámetros";
     return res.status(406).send();
   }
-  console.log(idBody);
-  let bm = bookmarkController.findByID(idBody);
-  console.log(bm);
+  bookmarkController.findByID(idBody).then(bm => {
+    if (!bm) {
+      res.statusMessage = "No existe el id";
+      return res.status(400).send();
+    }
 
-  if (!bm) {
-    res.statusMessage = "No existe el id";
-    return res.status(400).send();
-  }
+    let newBookmark = {
+      titulo: req.body.titulo || bm.titulo,
+      descripcion: req.body.descripcion || bm.descripcion,
+      url: req.body.url || bm.url
+    };
 
-  let newBookmark = {
-    titulo: req.body.titulo || bm.titulo,
-    descripcion: req.body.descripcion || bm.descripcion,
-    url: req.body.url || bm.url
-  };
-  _id = bm._id;
-
-  bookmarkController
-    .updateByID(_id, newBookmark)
-    .then(bm => {
-      return res.status(200).send(newBookmark);
-    })
-    .catch(error => {
-      throw new Error(err);
-    });
+    bookmarkController
+      .updateByID(idBody, newBookmark)
+      .then(bm => {
+        return res.status(200).send(newBookmark);
+      })
+      .catch(error => {
+        throw new Error(err);
+      });
+  });
 });
 
 function runServer(port, databaseUrl) {
