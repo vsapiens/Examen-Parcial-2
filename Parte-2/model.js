@@ -1,4 +1,5 @@
 let mongoose = require( 'mongoose' );
+let uuid = require( 'uuid' );
 
 mongoose.Promise = global.Promise;
 
